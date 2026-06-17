@@ -1,0 +1,26 @@
+[
+  {
+    "isrc": "US-001",
+    "plays": 200,
+    "service": "Spotify",
+    "expect_valid": true
+  },
+  {
+    "isrc": "US-002",
+    "plays": 0,
+    "service": "Apple Music",
+    "expect_valid": true
+  },
+  {
+    "isrc": "",
+    "plays": 100,
+    "service": "Tidal",
+    "expect_valid": false
+  },
+  {
+    "isrc": "US-004",
+    "plays": -10,
+    "service": "Spotify",
+    "expect_valid": false
+  }
+]

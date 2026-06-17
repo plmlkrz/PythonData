@@ -1,0 +1,4 @@
+isrc,plays,service,expect_valid
+US-001,500,Spotify,true
+US-002,-1,Spotify,false
+US-003,0,BadService,false
