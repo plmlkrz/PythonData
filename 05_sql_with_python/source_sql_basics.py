@@ -20,21 +20,21 @@ import pytest  # Import pytest testing framework
 
 def create_schema(conn: sqlite3.Connection):  # Function to create database tables
     cursor = conn.cursor()  # Create a cursor object (used to execute SQL commands)
-    cursor.executescript("""  # Execute multiple SQL statements
-        CREATE TABLE IF NOT EXISTS tracks (  # Create tracks table if it doesn't exist
-            id      INTEGER PRIMARY KEY AUTOINCREMENT,  # Auto-incrementing primary key
-            isrc    TEXT    NOT NULL UNIQUE,  # ISRC code (must be unique, cannot be null)
-            title   TEXT    NOT NULL,  # Track title (cannot be null)
-            artist  TEXT    NOT NULL  # Artist name (cannot be null)
+    cursor.executescript("""  
+        CREATE TABLE IF NOT EXISTS tracks (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            isrc    TEXT    NOT NULL UNIQUE,
+            title   TEXT    NOT NULL,
+            artist  TEXT    NOT NULL
         );
 
-        CREATE TABLE IF NOT EXISTS usage (  # Create usage table if it doesn't exist
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,  # Auto-incrementing primary key
-            isrc       TEXT    NOT NULL,  # ISRC code (cannot be null)
-            service    TEXT    NOT NULL,  # Streaming service name (cannot be null)
-            plays      INTEGER NOT NULL DEFAULT 0,  # Play count (defaults to 0)
-            report_dt  TEXT    NOT NULL,  # Report date (cannot be null)
-            FOREIGN KEY (isrc) REFERENCES tracks(isrc)  # Link isrc to tracks table
+        CREATE TABLE IF NOT EXISTS usage (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            isrc       TEXT    NOT NULL,
+            service    TEXT    NOT NULL,
+            plays      INTEGER NOT NULL DEFAULT 0,
+            report_dt  TEXT    NOT NULL,
+            FOREIGN KEY (isrc) REFERENCES tracks(isrc)
         );
     """)
     conn.commit()  # Commit the transaction (save changes to database)
@@ -83,12 +83,12 @@ def get_track(conn: sqlite3.Connection, isrc: str) -> dict | None:  # Function t
 def total_plays_by_track(conn: sqlite3.Connection) -> list[dict]:  # Function to get total plays per track
     """Return each track's total plays across all services, highest first."""
     cursor = conn.cursor()  # Create cursor
-    cursor.execute("""  # Execute JOIN and GROUP BY query
-        SELECT t.isrc, t.title, SUM(u.plays) AS total_plays  # Select track info and sum plays
-        FROM tracks t  # From tracks table
-        JOIN usage u ON t.isrc = u.isrc  # Join with usage table where ISRC matches
-        GROUP BY t.isrc, t.title  # Group results by track
-        ORDER BY total_plays DESC  # Sort by total plays (highest first)
+    cursor.execute("""
+        SELECT t.isrc, t.title, SUM(u.plays) AS total_plays
+        FROM tracks t
+        JOIN usage u ON t.isrc = u.isrc
+        GROUP BY t.isrc, t.title
+        ORDER BY total_plays DESC
     """)
     rows = cursor.fetchall()  # Fetch all results
     return [{"isrc": r[0], "title": r[1], "total_plays": r[2]} for r in rows]  # Convert rows to list of dicts
