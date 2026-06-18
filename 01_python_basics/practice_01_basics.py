@@ -125,6 +125,18 @@ def safe_divide(numerator: float, denominator: float) -> float:
 print(safe_divide(100,4))
 print(safe_divide(100, 0))
 
+# WORKING WITH LISTS OF DICTS
 
+usage_records = [
+    {"isrc": "US-S1Z-99-00001", "plays": 500, "service": "Spotify"},
+    {"isrc": "US-S1Z-99-00002", "plays": 0,   "service": "Spotify"},
+    {"isrc": "US-S1Z-99-00003", "plays": 1200, "service": "Apple Music"},
+    {"isrc": "US-S1Z-99-00004", "plays": -5,  "service": "Tidal"}
+]
 
+invalid = [r for r in usage_records if r["plays"] <= 0]
+print(f"Invalid records: {len(invalid)}")
 
+sorted_records = sorted(usage_records, key=lambda r: r["plays"], reverse=True)
+for rec in sorted_records:
+    print(f" {rec["isrc"]}: {rec["plays"]} plays")
