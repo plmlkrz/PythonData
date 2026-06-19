@@ -9,7 +9,7 @@
 #
 # Write your code below.
 # ─────────────────────────────────────────────────────────────────────────────
-class RoyalCalculator:
+class RoyaltyCalculator:
     STATUTORY_RATE = 0.091
     def __init__(self, rate: float = None):
        self.rate = rate if rate is not None else self.STATUTORY_RATE
