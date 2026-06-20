@@ -72,9 +72,9 @@ def test_validate_service(service, is_valid):
     record = {"isrc": "US-S1Z-99-00001", "plays": 100, "service": service}
     errors = validate_usage_record(record)
     if is_valid:
-        assert "unknown_service" not in errors
+        assert "invalid_service" not in errors
     else:
-        assert "unknown_service" in errors
+        assert "invalid_service" in errors
 
 
 # 2. PARAMETRIZE WITH CUSTOM TEST IDs
