@@ -46,7 +46,7 @@ def validate_usage_record(record: dict) -> list[str]:
 
 
 # 1. INLINE PARAMETRIZE
-@pytest.mark.parametrize("plays", "expected_errors", [
+@pytest.mark.parametrize("plays, expected_errors", [
     (0, []),
     (1_000_000, []),
     (-1, ["invalid_plays"]),
@@ -59,7 +59,7 @@ def test_validate_plays(plays, expected_errors):
     assert errors == expected_errors
 
 
-@pytest.mark.parametrize("service", "is_valid", [
+@pytest.mark.parametrize("service, is_valid", [
     ("Spotify", True),
     ("Apple Music", True),
     ("Tidal", True),
