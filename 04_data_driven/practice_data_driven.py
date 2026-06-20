@@ -25,3 +25,34 @@
 #
 # Write your code below.
 # ─────────────────────────────────────────────────────────────────────────────
+import json
+import csv
+import pytest
+from pathlib import Path
+
+def validate_usage_record(record: dict) -> list[str]:
+    errors = []
+    if not record.get("isrc"):
+        errors.append("missing_isrc")
+
+    if not isinstance(record.get("plays"), int) or record["plays"] < 0:
+        errors.append("invalid_plays")
+
+    if record.get("service") not in {"Spotify", "Apple Music", "Tidal", "YouTube Music"}:
+        errors.append("invalid_service")
+
+    return errors
+
+# 1. INLINE PARAMETRIZE
+@pytest.mark.parametrize(["plays", "expected_errors"], [
+    (0,          []),
+    (1_000_000,  []),
+    (-1,         ["invalid_plays"]),
+    ("lots",     ["invalid_plays"]),
+    (None,       ["invalid_plays"]),
+    ])
+
+def test_validate_plays(plays, expected_errors):
+    record = {"isrc": "US-S1Z-99-00001", "plays": plays, "service": "Spotify"}
+    errors = validate_usage_record(record)
+    assert errors == expected_errors
