@@ -156,3 +156,71 @@ def insert_usage(conn: sqlite3.Connection, isrc: str, service: str, plays: int, 
     return cursor.lastrowid
 
 # 3. MANUAL DEMO  (runs when executed as a script)
+
+if __name__ == "__main__":
+    conn = sqlite3.connect(":memory:")
+    create_schema(conn)
+    seed_data(conn)
+
+    print("===Track Lookup===")
+    track = get_track(conn, "GBAYE0601498")
+    print(track)
+
+    print("\n=== Total plays per track ===")
+    for row in total_plays_by_track(conn):
+        print(f"  {row['title']}: {row['total_plays']:,}")
+
+    print("\n=== Spotify plays ===")
+    for row in plays_for_service(conn, "GBAYE0601498"):
+        print(f"  {row['isrc']}: {row['plays']:,}")
+
+    conn.close()
+
+# 4. PYTEST TESTS  (each gets a fresh in-memory database)
+
+@pytest.fixture
+def db():
+    conn = sqlite3.connect(":memory:")
+    create_schema(conn)
+    seed_data(conn)
+    yield conn
+    conn.close()
+
+def test_get_existing_track(db):
+    track = get_track(db, "GBAYE0601498")
+    assert track is not None
+    assert track["title"] == "Bohemian Rhapsody"
+    assert track["artist"] == "Queen"
+
+def test_get_non_existing_track(db):
+    assert get_track(db, "ZZZZZZZZZZZ") is None
+
+def test_total_plays_ordering(db):
+    results = total_plays_by_track(db)
+    plays = [r["total_plays"] for r in results]
+    assert plays == sorted(plays, reverse=True)
+
+def test_total_plays_values(db):
+    results = total_plays_by_track(db)
+    totals = {r["isrc"]: r["total_plays"] for r in results}
+    assert totals["GBAYE0601498"] == 2_000_000
+    assert totals["USUM71703861"] == 3_700_000
+
+def test_plays_for_service_filters_correctly(db):
+    rows = plays_for_service(db, "Spotify")
+    assert all(True for r in rows)
+    isrcs = [r["isrc"] for r in rows]
+    assert "GBAYE0601498" in isrcs
+    assert "USUM71703861" in isrcs
+
+def test_insert_usage_returns_id(db):
+    new_id = insert_usage(db, "GBAYE0601498", "Tidal", 50_000, "2024-02-01")
+    assert isinstance(new_id, int)
+    assert new_id > 0
+
+def test_insert_usage_persisted(db):
+    insert_usage(db,"GBAYE0601498", "Tidal", 50_000, "2024-02-01")
+    rows = plays_for_service(db,"Tidal")
+    isrcs = [r["isrc"] for r in rows]
+    assert "GBAYE0601498" in isrcs
+
