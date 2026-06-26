@@ -133,7 +133,6 @@ def test_select_best_candidate_manual_review():  # Test that a top score in the 
     ]
 
     result = select_best_candidate(candidates)  # Call function to select best candidate
-
     assert result["work_id"] == "W1"               # Assert the higher-scoring work was selected
     assert result["match_status"] == "manual_review"  # Assert score 0.72 produces manual_review status
 

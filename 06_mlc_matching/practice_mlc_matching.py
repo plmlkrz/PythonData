@@ -69,3 +69,131 @@
 #   and there is enough evidence to explain the royalty outcome later."
 #
 # Write your code below.
+from __future__ import annotations
+
+
+import re
+
+
+import pytest
+#from pip._internal.models import candidate
+
+ACCEPT_THRESHOLD = 0.90
+REVIEW_THRESHOLD = 0.70
+
+
+def normalize_title(title: str) -> str:
+    if not isinstance(title, str):
+        raise TypeError("Title must be a string")
+    lowered = title.lower().strip()
+    without_punctuation = re.sub(r"[^a-z0-9\s]", " ", lowered)
+    collapsed_spaces = re.sub(r"\s+", " ", without_punctuation)
+    return collapsed_spaces.strip()
+
+
+def classify_match(score: float) -> str:
+    if score < 0 or score > 1:
+        raise ValueError("Score must be between 0 and 1")
+    if score >= ACCEPT_THRESHOLD:
+        return "auto-match"
+    if score >= REVIEW_THRESHOLD:
+        return "manual review"
+    return "no match"
+
+
+def select_best_candidate(candidates: list[dict]) -> dict | None:
+    if not candidates:
+        return None
+    sorted_candidates = sorted(candidates, key=lambda c: c["score"], reverse=True)
+    best = sorted_candidates[0]
+
+    if len(sorted_candidates) > 1 and sorted_candidates[1]["score"] == best["score"]:
+        raise ValueError("ambiguous top match")
+
+    enriched = best.copy()
+    enriched["match_status"] = classify_match(best["score"])
+    return enriched
+
+
+def build_audit_message(usage_record: dict, candidate: dict | None) -> str:
+    isrc = usage_record.get("isrc", "unknown_isrc")
+    title = usage_record.get("title", "unknown title")
+
+    if candidate is None:
+        return f"{isrc} / {title}: no candidates returned"
+    return (f"{isrc} / {title}: selected work_id={candidate['work_id']} "
+            f"score={candidate['score']:.2f} status={candidate['match_status']}"
+            )
+
+
+# PYTEST TESTS
+
+@pytest.mark.parametrize(
+    "raw_title, expected",
+    [
+        ("Bohemian Rhapsody", "bohemian rhapsody"),
+        ("  Bohemian   Rhapsody  ", "bohemian rhapsody"),
+        ("Bohemian-Rhapsody!", "bohemian rhapsody"),
+        ("SONG 2 (Live)", "song 2 live"),
+    ],
+)
+def test_normalize_title(raw_title, expected):
+    assert normalize_title(raw_title) == expected
+
+
+@pytest.mark.parametrize("bad_score", [-0.01, 1.01])
+def test_classify_match_rejects_invalid_scores(bad_score):
+    with pytest.raises(ValueError, match="between 0 and 1"):
+        classify_match(bad_score)
+
+
+def test_select_best_candidate_auto_match():
+    candidates = [
+        {"work_id": "W1", "score": 0.68},
+        {"work_id": "W2", "score": 0.94},
+        {"work_id": "W3", "score": 0.81},
+    ]
+
+    result = select_best_candidate(candidates)
+
+    assert result["work_id"] == "W2"
+    assert result["match_status"] == "auto-match"
+
+
+def test_select_best_candidate_manual_review():
+    candidates = [
+        {"work_id": "W1", "score": 0.72},
+        {"work_id": "W2", "score": 0.63},
+    ]
+    result = select_best_candidate(candidates)
+    assert result["work_id"] == "W1"
+    assert result["match_status"] == "manual review"
+
+
+def test_select_best_candidate_returns_none_for_no_candidates():
+    assert select_best_candidate([]) is None
+
+
+def test_select_best_candidate_rejects_ambiguous_tie():
+    candidates = [
+        {"work_id": "W1", "score": 0.91},
+        {"work_id": "W2", "score": 0.91},
+    ]
+    with pytest.raises(ValueError, match="ambiguous"):
+        select_best_candidate(candidates)
+
+
+def test_build_audit_message_for_selected_candidate():
+    usage_records = {"isrc": "US-S1Z-99-00001", "title": "Test Song"}
+    candidate = {"work_id": "W123", "score": 0.94, "match_status": "auto_match"}
+
+    message = build_audit_message(usage_records, candidate)
+    assert "US-S1Z-99-00001" in message
+    assert "work_id=W123" in message
+    assert "score=0.94" in message
+    assert "status=auto_match" in message
+
+
+def test_build_audit_message_for_no_candidates():
+    usage_record = {"isrc": "US-S1Z-99-00002", "title": "Unknown Song"}
+    assert build_audit_message(usage_record, None) == ("US-S1Z-99-00002 / Unknown Song: no candidates returned")
